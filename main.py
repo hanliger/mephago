@@ -34,7 +34,7 @@ def updateBoard(pq, chessBoard: ChessBoard):
 
 
 def placeMeteor(ym, bm, myBoard):
-    myBoard.divide(ym)
+    myBoard.split(ym)
     print(myBoard.top)
     print(myBoard.spr)
     print(myBoard.bot)
@@ -42,7 +42,7 @@ def placeMeteor(ym, bm, myBoard):
     pq = distribute(bm, myBoard.top)
     bm -= len(pq)
     myBoard = updateBoard(pq, myBoard)
-    myBoard.divide(ym)
+    myBoard.split(ym)
 
     if myBoard.zeros() == 3:
         if bm > myBoard.sum():
@@ -87,7 +87,7 @@ def placeMeteor(ym, bm, myBoard):
                     myBoard.update(a, 1 - availability)
                     pq += availability * [a]
 
-    myBoard.divide(ym)
+    myBoard.split(ym)
     if bm > 0 and bm > myBoard.sum("bot") + myBoard.sum("spr"):
         return 0
 
@@ -95,26 +95,24 @@ def placeMeteor(ym, bm, myBoard):
     bm -= len(pq_tmp)
     myBoard = updateBoard(pq_tmp, myBoard)
     pq += pq_tmp
-    myBoard.divide(ym)
+    myBoard.split(ym)
 
     pq_tmp = distribute(bm, myBoard.spr)
     bm -= len(pq_tmp)
     myBoard = updateBoard(pq_tmp, myBoard)
     pq += pq_tmp
-    myBoard.divide(ym)
+    myBoard.split(ym)
 
     return myBoard, pq
 
-
-ym = 6
-bm = 4
+ym = 12
+bm = 3
 # myBoard = ChessBoard("Hard")
-myBoard = ChessBoard.ChessBoard([(11, 1), (1, 1), (12, 1), (3, 3), (9, 2), (0, 2), (5, 3), (7, 3), (6, 2)])
+myBoard = ChessBoard.ChessBoard([(11, 0), (1, 1), (12, 1), (3, 2), (9, 2), (0, 2), (5, 3), (7, 1), (6, 3)])
 newBoard, pq = placeMeteor(ym, bm, myBoard)
 myBoard = newBoard
 print(myBoard.chessBoard)
 print(pq)
-
 
 class MyApp(QWidget):
 

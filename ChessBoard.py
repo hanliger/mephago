@@ -11,20 +11,17 @@ class ChessBoard:
         else:
             self.chessBoard = [(11, 3), (1, 3), (12, 3), (3, 3), (9, 3), (0, 3), (5, 3), (7, 3), (6, 3)]
 
-
     def get(self, loc):
         for x, y in self.chessBoard:
             if x == loc:
                 return (x, y)
-
 
     def update(self, loc, val):
         for i, tup in enumerate(self.chessBoard):
             if tup[0] == loc:
                 self.chessBoard[i] = (loc, val)
 
-
-    def divide(self, ym):
+    def split(self, ym):
         self.spr = [self.get(3), self.get(9), self.get(0)]
         if ym == 6:
             self.top = [self.get(6), self.get(7), self.get(5)]
