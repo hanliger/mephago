@@ -11,7 +11,7 @@ class Window(QMainWindow):
             9:(50, 150), 0:(150, 150), 3:(250, 150),
             7:(100, 200), 5:(200, 200), 6:(150, 250)}
     size = 100
-    offset = 60
+    offset = 40
     myBoard = ChessBoard.ChessBoard("Hard")
 
     def __init__(self):
@@ -19,7 +19,7 @@ class Window(QMainWindow):
         self.initUI()
 
     def initUI(self):
-        self.setFixedSize(300, 450)
+        self.setFixedSize(300, 440)
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
 
         quitButton = QPushButton('X', self)
@@ -40,6 +40,9 @@ class Window(QMainWindow):
         diffCB.addItem('하드',)
         diffCB.addItem('노말')
         diffCB.activated[str].connect(lambda : self.selectedComboItem(diffCB))
+
+        nb12 = QPushButton("★",self)
+        nb12.setGeometry(QRect(135, 10, 30, 30))
 
         pb12 = QPushButton(self)
         pb12.setGeometry(QRect(125,25+self.offset, 50, 50))
@@ -95,17 +98,20 @@ class Window(QMainWindow):
         pb6.clicked.connect(lambda : self.tileButtonClicked(pb6))
         pb6.setFlat(True)
 
+        nb6 = QPushButton("★",self)
+        nb6.setGeometry(QRect(135, 340, 30, 30))
+
         lbl1 = QLabel("파메", self)
-        lbl1.setGeometry(QRect(50, 370, 30, 20))
+        lbl1.setGeometry(QRect(40, 375, 30, 20))
 
         bmLineEdit = QLineEdit(self)
-        bmLineEdit.setGeometry(QRect(75,370,150, 20))
+        bmLineEdit.setGeometry(QRect(75,375,150, 20))
 
         nextButton = QPushButton("Next", self)
-        nextButton.setGeometry(QRect(225, 370, 40, 20))
+        nextButton.setGeometry(QRect(235, 375, 50, 20))
 
         lbl2 = QLabel("노메", self)
-        lbl2.setGeometry(QRect(50, 400, 40, 20))
+        lbl2.setGeometry(QRect(40, 400, 40, 20))
 
         ymLineEdit = QLineEdit(self)
         ymLineEdit.setGeometry(QRect(75,400,150, 20))
