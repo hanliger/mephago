@@ -25,10 +25,10 @@ class ChessBoard:
         self.spr = [self.get(3), self.get(9), self.get(0)]
         if ym == 6:
             self.top = [self.get(6), self.get(7), self.get(5)]
-            self.bot = [self.get(12), self.get(11), self.get(1)]
+            self.bot = [ self.get(11), self.get(1), self.get(12)]
         elif ym == 12:
             self.bot = [self.get(6), self.get(7), self.get(5)]
-            self.top = [self.get(12), self.get(11), self.get(1)]
+            self.top = [self.get(11), self.get(1), self.get(12)]
 
 
     def zeros(self):

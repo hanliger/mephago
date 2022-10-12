@@ -2,6 +2,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 import ChessBoard, utils
+import copy
 #from BlurWindow.blurWindow import blur
 
 import sys
@@ -12,10 +13,15 @@ class Window(QMainWindow):
             7:(100, 200), 5:(200, 200), 6:(150, 250)}
     size = 100
     offset = 40
-    myBoard = ChessBoard.ChessBoard("Hard")
+    tileClicked = 0
 
     def __init__(self):
         super().__init__()
+        self.myBoard = ChessBoard.ChessBoard("Hard")
+        self.ym = 12
+        self.bm = 3
+        tmpBoard = copy.deepcopy(self.myBoard)
+        self.pq = utils.placeMeteor(self.ym, 2, tmpBoard)
         self.initUI()
 
     def initUI(self):
@@ -28,94 +34,57 @@ class Window(QMainWindow):
 
         refreshButton = QPushButton('R', self)
         refreshButton.setGeometry(QRect(260, 0, 20, 20))
-        # refreshButton.clicked.connect(lambda : self.selectedComboItem(diffCB))
+        refreshButton.clicked.connect(lambda : self.reset(diffCB))
 
         timerCheckBox = QCheckBox('타이머 ON', self)
         timerCheckBox.setGeometry(QRect(220, 30, 80, 20))
         timerCheckBox.setLayoutDirection(Qt.RightToLeft)
         timerCheckBox.setObjectName("timerCheckBox")
-
-        diffCB = QComboBox(self)
-        diffCB.setGeometry(QRect(0, 0, 60, 20))
-        diffCB.addItem('하드',)
-        diffCB.addItem('노말')
-        diffCB.activated[str].connect(lambda : self.selectedComboItem(diffCB))
-
-        nb12 = QPushButton("★",self)
-        nb12.setGeometry(QRect(135, 10, 30, 30))
-
-        pb12 = QPushButton(self)
-        pb12.setGeometry(QRect(125,25+self.offset, 50, 50))
-        pb12.setObjectName('12')
-        pb12.clicked.connect(lambda : self.tileButtonClicked(pb12))
-        pb12.setFlat(True)
-
-        pb11 = QPushButton(self)
-        pb11.setGeometry(QRect(75, 75 + self.offset, 50, 50))
-        pb11.setObjectName('11')
-        pb11.clicked.connect(lambda : self.tileButtonClicked(pb11))
-        pb11.setFlat(True)
-
-        pb1 = QPushButton(self)
-        pb1.setGeometry(QRect(175, 75 + self.offset, 50, 50))
-        pb1.setObjectName('1')
-        pb1.clicked.connect(lambda : self.tileButtonClicked(pb1))
-        pb1.setFlat(True)
-
-        pb9 = QPushButton(self)
-        pb9.setGeometry(QRect(25, 125 + self.offset, 50, 50))
-        pb9.setObjectName('9')
-        pb9.clicked.connect(lambda : self.tileButtonClicked(pb9))
-        pb9.setFlat(True)
-
-        pb0 = QPushButton(self)
-        pb0.setGeometry(QRect(125, 125 + self.offset, 50, 50))
-        pb0.setObjectName('0')
-        pb0.clicked.connect(lambda : self.tileButtonClicked(pb0))
-        pb0.setFlat(True)
-
-        pb3 = QPushButton(self)
-        pb3.setGeometry(QRect(225, 125 + self.offset, 50, 50))
-        pb3.setObjectName('3')
-        pb3.clicked.connect(lambda : self.tileButtonClicked(pb3))
-        pb3.setFlat(True)
-
-        pb7 = QPushButton(self)
-        pb7.setGeometry(QRect(75, 175 + self.offset, 50, 50))
-        pb7.setObjectName('7')
-        pb7.clicked.connect(lambda : self.tileButtonClicked(pb7))
-        pb7.setFlat(True)
-
-        pb5 = QPushButton(self)
-        pb5.setGeometry(QRect(175, 175 + self.offset, 50, 50))
-        pb5.setObjectName('5')
-        pb5.clicked.connect(lambda : self.tileButtonClicked(pb5))
-        pb5.setFlat(True)
-
-        pb6 = QPushButton(self)
-        pb6.setGeometry(QRect(125, 225 + self.offset, 50, 50))
-        pb6.setObjectName('6')
-        pb6.clicked.connect(lambda : self.tileButtonClicked(pb6))
-        pb6.setFlat(True)
-
-        nb6 = QPushButton("★",self)
-        nb6.setGeometry(QRect(135, 340, 30, 30))
-
         lbl1 = QLabel("파메", self)
         lbl1.setGeometry(QRect(40, 375, 30, 20))
 
-        bmLineEdit = QLineEdit(self)
-        bmLineEdit.setGeometry(QRect(75,375,150, 20))
+        self.bmLineEdit = QLineEdit(self)
+        self.bmLineEdit.setGeometry(QRect(75, 375, 150, 20))
+        self.bmLineEdit.setAlignment(Qt.AlignCenter)
+        self.bmLineEdit.setText(str(self.pq))
+        self.bmLineEdit.setReadOnly(True)
 
         nextButton = QPushButton("Next", self)
         nextButton.setGeometry(QRect(235, 375, 50, 20))
+        nextButton.clicked.connect(lambda: self.nextButtonClicked())
 
         lbl2 = QLabel("노메", self)
         lbl2.setGeometry(QRect(40, 400, 40, 20))
 
-        ymLineEdit = QLineEdit(self)
-        ymLineEdit.setGeometry(QRect(75,400,150, 20))
+        self.ymLineEdit = QLineEdit(self)
+        self.ymLineEdit.setGeometry(QRect(75, 400, 150, 20))
+        self.ymLineEdit.setAlignment(Qt.AlignCenter)
+        self.ymLineEdit.setText(str(self.ym))
+        self.ymLineEdit.setReadOnly(True)
 
+        diffCB = QComboBox(self)
+        diffCB.setGeometry(QRect(0, 0, 60, 20))
+        diffCB.addItem('하드')
+        diffCB.addItem('노말')
+        diffCB.activated[str].connect(lambda : self.selectedComboItem(diffCB))
+
+        # 3 x 3 tiles
+        for loc in self.LocToPos :
+            x, y = self.LocToPos[loc]
+            button = QPushButton(self)
+            button.setGeometry(QRect(x-25, y-25+self.offset, 50, 50))
+            button.clicked.connect(lambda ch, loc = loc: self.tileButtonClicked(loc))
+            button.setContextMenuPolicy(Qt.CustomContextMenu)
+            button.customContextMenuRequested.connect(lambda ch, loc = loc: self.tileButtonRightClicked(loc))
+            button.setFlat(True)
+
+        nb6 = QPushButton("★",self)
+        nb6.setGeometry(QRect(125, 340, 50, 20))
+        nb6.clicked.connect(lambda : self.ym6Clicked())
+
+        nb12 = QPushButton("★", self)
+        nb12.setGeometry(QRect(125, 20, 50, 20))
+        nb12.clicked.connect(lambda : self.ym12Clicked())
 
         mi_stay_on_top = QAction('Stay On Top', self)
         mi_stay_on_top.setShortcut('Ctrl+T')
@@ -124,17 +93,56 @@ class Window(QMainWindow):
 
         self.show()
 
-    def selectedComboItem(self, str):
+    #reset
+    def reset(self, str):
         if str.currentText() == '하드' :
             self.myBoard = ChessBoard.ChessBoard("Hard")
+            self.ym = 12
         elif str.currentText() == '노말' :
             self.myBoard = ChessBoard.ChessBoard("Normal")
+            self.ym = 6
+        tmpBoard = copy.deepcopy(self.myBoard)
+        self.pq = utils.placeMeteor(self.ym, 2, tmpBoard)
+        # self.bmLineEdit.setText(str(self.pq))
+        # self.ymLineEdit.setText(str(self.ym))
         self.update()
 
-    def tileButtonClicked(self, btn):
-        id = int(btn.objectName())
+    def tileButtonClicked(self, id):
+        # id = int(btn.objectName())
         loc, val = self.myBoard.get(id)
         self.myBoard.update(loc, max(0, val - 1))
+        self.update()
+
+    def tileButtonRightClicked(self, id):
+        loc, val = self.myBoard.get(id)
+        if val == 0 :
+            self.myBoard.update(loc, 3)
+        else :
+            self.myBoard.update(loc, min(3, val + 1))
+        self.update()
+
+    def ym12Clicked(self):
+        self.myBoard.update(12, 0)
+        self.myBoard.update(11, 0)
+        self.myBoard.update(1, 0)
+        self.ym = 6
+        self.ymLineEdit.setText(str(self.ym))
+        self.update()
+
+    def ym6Clicked(self):
+        self.myBoard.update(6, 0)
+        self.myBoard.update(7, 0)
+        self.myBoard.update(5, 0)
+        self.ym = 12
+        self.ymLineEdit.setText(str(self.ym))
+        self.update()
+
+    def nextButtonClicked(self):
+        print (self.bm)
+        tmpBoard = copy.deepcopy(self.myBoard)
+        self.pq = utils.placeMeteor(self.ym, self.bm, tmpBoard)
+        self.bmLineEdit.setText(str(self.pq))
+        self.bm = 3 + self.bm % 2 # 3 -> 4 -> 3 -> 4 -> ...
         self.update()
 
     def toggle_stay_on_top(self):
@@ -148,18 +156,6 @@ class Window(QMainWindow):
         self.show()
 
     def paintEvent(self, event):
-        painter = QPainter(self)
-        # self.drawTile(12, 1)  # 12
-        # self.drawTile(11, 1)  # 11
-        # self.drawTile(1, 1)  # 1
-        #
-        # self.drawTile(9, 2)  # 9
-        # self.drawTile(0, 2)  # 0
-        # self.drawTile(3, 2)  # 3
-        #
-        # self.drawTile(7, 3)  # 7
-        # self.drawTile(5, 0)  # 5
-        # self.drawTile(6, 0)  # 6
         self.drawTiles(self.myBoard)
 
     def drawTiles(self, myBoard):
@@ -178,7 +174,6 @@ class Window(QMainWindow):
             color = Qt.darkGray
         else:
             color = Qt.black
-
         painter.setPen(QPen(Qt.black, 2.5, Qt.SolidLine))
         painter.setBrush(QBrush(color, Qt.SolidPattern))
 
@@ -199,17 +194,17 @@ class Window(QMainWindow):
         self.move(self.x() + delta.x(), self.y() + delta.y())
         self.oldPosition = event.globalPos()
 
-ym = 12
-bm = 3
-myBoard = ChessBoard.ChessBoard("Hard")
-# myBoard = ChessBoard.ChessBoard([(11, 0), (1, 1), (12, 1), (3, 2), (9, 2), (0, 2), (5, 3), (7, 1), (6, 3)])
-newBoard, pq = utils.placeMeteor(ym, bm, myBoard)
-myBoard = newBoard
-print(myBoard.chessBoard)
-print(pq)
+# ym = 12
+# bm = 3
+# myBoard = ChessBoard.ChessBoard("Hard")
+# # myBoard = ChessBoard.ChessBoard([(11, 0), (1, 1), (12, 1), (3, 2), (9, 2), (0, 2), (5, 3), (7, 1), (6, 3)])
+# newBoard, pq = utils.placeMeteor(ym, bm, myBoard)
+# myBoard = newBoard
+# print(myBoard.chessBoard)
+# print(pq)
 
 if __name__ == "__main__":
     App = QApplication(sys.argv)
     window = Window()
-    window.setWindowOpacity(0.8)
+    # window.setWindowOpacity(0.8)
     sys.exit(App.exec())

@@ -29,10 +29,6 @@ def updateBoard(pq, chessBoard: ChessBoard):
 
 def placeMeteor(ym, bm, myBoard):
     myBoard.split(ym)
-    print(myBoard.top)
-    print(myBoard.spr)
-    print(myBoard.bot)
-    print("ym = " + str(ym) + " bm = " + str(bm))
     pq = distribute(bm, myBoard.top)
     bm -= len(pq)
     myBoard = updateBoard(pq, myBoard)
@@ -40,6 +36,7 @@ def placeMeteor(ym, bm, myBoard):
 
     if myBoard.zeros() == 3:
         if bm > myBoard.sum():
+            print("dpscut")
             return 0
 
     else:
@@ -83,6 +80,7 @@ def placeMeteor(ym, bm, myBoard):
 
     myBoard.split(ym)
     if bm > 0 and bm > myBoard.sum("bot") + myBoard.sum("spr"):
+        print("dpscut")
         return 0
 
     pq_tmp = distribute(bm, myBoard.bot)
@@ -97,5 +95,5 @@ def placeMeteor(ym, bm, myBoard):
     pq += pq_tmp
     myBoard.split(ym)
 
-    return myBoard, pq
-
+    print(pq)
+    return pq
