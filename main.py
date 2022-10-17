@@ -7,6 +7,11 @@ import copy
 
 import sys
 
+class tileButton(QPushButton):
+    def __init__(self):
+        super().__init__()
+        timer = QTimer(self, interval=1000)
+
 class Window(QMainWindow):
     LocToPos = {12:(150,50), 11:(100, 100), 1:(200, 100),
             9:(50, 150), 0:(150, 150), 3:(250, 150),
@@ -17,31 +22,51 @@ class Window(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.myBoard = ChessBoard.ChessBoard("Hard")
-        self.ym = 12
-        self.bm = 3
-        tmpBoard = copy.deepcopy(self.myBoard)
-        self.pq = utils.placeMeteor(self.ym, 2, tmpBoard)
+        self.initMode("Hard")
         self.initUI()
+
+    def initMode(self, mode):
+        if mode == "Hard":
+            self.mode = mode
+            self.myBoard = ChessBoard.ChessBoard("Hard")
+            self.ym = 12
+            self.bm = 3
+            self.ymBroken = [5, 6, 7]
+        elif mode == "Normal":
+            self.mode = mode
+            self.myBoard = ChessBoard.ChessBoard("Normal")
+            self.ym = 6
+            self.bm = 3
+            self.ymBroken = [11, 12, 1]
+        tmpBoard = copy.deepcopy(self.myBoard)
+        self.pq = utils.placeMeteor(self.ym, 2, tmpBoard, mode)
 
     def initUI(self):
         self.setFixedSize(300, 440)
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
+        self.setStyleSheet("background-color:#252740;color:white")
 
-        quitButton = QPushButton('X', self)
-        quitButton.setGeometry(QRect(280,0,20,20))
-        quitButton.clicked.connect(QCoreApplication.instance().quit)
+        self.quitButton = QPushButton('X', self)
+        self.quitButton.setGeometry(QRect(280,0,20,20))
+        self.quitButton.clicked.connect(QCoreApplication.instance().quit)
 
-        refreshButton = QPushButton('R', self)
-        refreshButton.setGeometry(QRect(260, 0, 20, 20))
-        refreshButton.clicked.connect(lambda : self.reset(diffCB))
+        self.refreshButton = QPushButton('R', self)
+        self.refreshButton.setGeometry(QRect(260, 0, 20, 20))
+        self.refreshButton.clicked.connect(self.refresh)
 
-        timerCheckBox = QCheckBox('타이머 ON', self)
-        timerCheckBox.setGeometry(QRect(220, 30, 80, 20))
-        timerCheckBox.setLayoutDirection(Qt.RightToLeft)
-        timerCheckBox.setObjectName("timerCheckBox")
-        lbl1 = QLabel("파메", self)
-        lbl1.setGeometry(QRect(40, 375, 30, 20))
+        self.timerCheckBox = QCheckBox('타이머 ON', self)
+        self.timerCheckBox.setGeometry(QRect(220, 30, 80, 20))
+        self.timerCheckBox.setLayoutDirection(Qt.RightToLeft)
+        self.timerCheckBox.setObjectName("timerCheckBox")
+
+        self.tileCheckBox = QCheckBox('타일파괴방지', self)
+        self.tileCheckBox.setGeometry(QRect(0, 30, 100, 20))
+        # self.tileCheckBox.setLayoutDirection(Qt.RightToLeft)
+        #self.tileCheckBox.toggle()
+        self.tileCheckBox.stateChanged.connect(self.refresh)
+
+        self.lbl1 = QLabel("파메", self)
+        self.lbl1.setGeometry(QRect(40, 375, 30, 20))
 
         self.bmLineEdit = QLineEdit(self)
         self.bmLineEdit.setGeometry(QRect(75, 375, 150, 20))
@@ -49,12 +74,12 @@ class Window(QMainWindow):
         self.bmLineEdit.setText(str(self.pq))
         self.bmLineEdit.setReadOnly(True)
 
-        nextButton = QPushButton("Next", self)
-        nextButton.setGeometry(QRect(235, 375, 50, 20))
-        nextButton.clicked.connect(lambda: self.nextButtonClicked())
+        self.nextButton = QPushButton("Next", self)
+        self.nextButton.setGeometry(QRect(235, 375, 50, 20))
+        self.nextButton.clicked.connect(self.nextButtonClicked)
 
-        lbl2 = QLabel("노메", self)
-        lbl2.setGeometry(QRect(40, 400, 40, 20))
+        self.lbl2 = QLabel("노메", self)
+        self.lbl2.setGeometry(QRect(40, 400, 40, 20))
 
         self.ymLineEdit = QLineEdit(self)
         self.ymLineEdit.setGeometry(QRect(75, 400, 150, 20))
@@ -62,49 +87,60 @@ class Window(QMainWindow):
         self.ymLineEdit.setText(str(self.ym))
         self.ymLineEdit.setReadOnly(True)
 
-        diffCB = QComboBox(self)
-        diffCB.setGeometry(QRect(0, 0, 60, 20))
-        diffCB.addItem('하드')
-        diffCB.addItem('노말')
-        diffCB.activated[str].connect(lambda : self.selectedComboItem(diffCB))
+        self.diffCB = QComboBox(self)
+        self.diffCB.setGeometry(QRect(0, 0, 70, 20))
+        self.diffCB.addItem("Hard")
+        self.diffCB.addItem("Normal")
+        self.diffCB.activated[str].connect(self.reset)
+
+        # self.lbl = QLabel('1:40', self)
+        # self.lbl.setGeometry((QRect(125,25+self.offset, 50, 50)))
+        # self.lbl.setAlignment(Qt.AlignCenter)
+        # self.lbl.setStyleSheet("background-color:rgba(0,0,0,0)")
 
         # 3 x 3 tiles
         for loc in self.LocToPos :
             x, y = self.LocToPos[loc]
-            button = QPushButton(self)
-            button.setGeometry(QRect(x-25, y-25+self.offset, 50, 50))
-            button.clicked.connect(lambda ch, loc = loc: self.tileButtonClicked(loc))
-            button.setContextMenuPolicy(Qt.CustomContextMenu)
-            button.customContextMenuRequested.connect(lambda ch, loc = loc: self.tileButtonRightClicked(loc))
-            button.setFlat(True)
+            self.button = QPushButton(self)
+            self.button.setGeometry(QRect(x-25, y-25+self.offset, 50, 50))
+            self.button.clicked.connect(lambda ch, loc = loc: self.tileButtonClicked(loc))
+            self.button.setContextMenuPolicy(Qt.CustomContextMenu)
+            self.button.customContextMenuRequested.connect(lambda ch, loc = loc: self.tileButtonRightClicked(loc))
+            self.button.setFlat(True)
 
-        nb6 = QPushButton("★",self)
-        nb6.setGeometry(QRect(125, 340, 50, 20))
-        nb6.clicked.connect(lambda : self.ym6Clicked())
 
-        nb12 = QPushButton("★", self)
-        nb12.setGeometry(QRect(125, 20, 50, 20))
-        nb12.clicked.connect(lambda : self.ym12Clicked())
 
-        mi_stay_on_top = QAction('Stay On Top', self)
-        mi_stay_on_top.setShortcut('Ctrl+T')
-        mi_stay_on_top.setCheckable(True)
-        mi_stay_on_top.triggered.connect(self.toggle_stay_on_top)
+        self.nb6 = QPushButton("★",self)
+        self.nb6.setGeometry(QRect(125, 340, 50, 20))
+        self.nb6.clicked.connect(lambda : self.ymClicked(6))
+        self.nb6.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.nb6.customContextMenuRequested.connect(lambda : self.ymRightClicked())
 
+        self.nb12 = QPushButton("★", self)
+        self.nb12.setGeometry(QRect(125, 20, 50, 20))
+        self.nb12.clicked.connect(lambda : self.ymClicked(12))
+        self.nb12.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.nb12.customContextMenuRequested.connect(lambda : self.ymRightClicked())
         self.show()
 
     #reset
-    def reset(self, str):
-        if str.currentText() == '하드' :
-            self.myBoard = ChessBoard.ChessBoard("Hard")
-            self.ym = 12
-        elif str.currentText() == '노말' :
-            self.myBoard = ChessBoard.ChessBoard("Normal")
-            self.ym = 6
+    def reset(self, cb):
+        self.mode = cb
+        self.initMode(cb)
+        self.bmLineEdit.setText(str(self.pq))
+        self.ymLineEdit.setText(str(self.ym))
+        self.update()
+
+    def refresh(self):
+        self.bm = 3 + self.bm % 2
         tmpBoard = copy.deepcopy(self.myBoard)
-        self.pq = utils.placeMeteor(self.ym, 2, tmpBoard)
-        # self.bmLineEdit.setText(str(self.pq))
-        # self.ymLineEdit.setText(str(self.ym))
+        if self.tileCheckBox.isChecked() :
+            self.pq = utils.placeMeteor(self.ym, self.bm, tmpBoard, "Safe")
+        else :
+            self.pq = utils.placeMeteor(self.ym, self.bm, tmpBoard, self.mode)
+        self.bmLineEdit.setText(str(self.pq))
+        self.ymLineEdit.setText(str(self.ym))
+        self.bm = 3 + self.bm % 2
         self.update()
 
     def tileButtonClicked(self, id):
@@ -119,41 +155,40 @@ class Window(QMainWindow):
             self.myBoard.update(loc, 3)
         else :
             self.myBoard.update(loc, min(3, val + 1))
-        self.update()
+        self.refresh()
+        # self.update()
 
-    def ym12Clicked(self):
-        self.myBoard.update(12, 0)
-        self.myBoard.update(11, 0)
-        self.myBoard.update(1, 0)
-        self.ym = 6
-        self.ymLineEdit.setText(str(self.ym))
-        self.update()
+    def ymClicked(self, loc):
+        if loc == 12 :
+            index = [12, 11, 1]
+            self.ym = 6
+        elif loc == 6 :
+            index = [6, 7, 5]
+            self.ym = 12
+        self.ymBroken = []
+        for i in index :
+            _, val = self.myBoard.get(i)
+            if val > 0 :
+                self.myBoard.update(i, 0)
+                self.ymBroken += [i]
+        self.refresh()
 
-    def ym6Clicked(self):
-        self.myBoard.update(6, 0)
-        self.myBoard.update(7, 0)
-        self.myBoard.update(5, 0)
-        self.ym = 12
-        self.ymLineEdit.setText(str(self.ym))
-        self.update()
+    def ymRightClicked(self):
+        if self.ymBroken :
+            for loc in self.ymBroken :
+                self.myBoard.update(loc, 3)
+            self.ymBroken = []
+            self.refresh()
 
     def nextButtonClicked(self):
-        print (self.bm)
         tmpBoard = copy.deepcopy(self.myBoard)
-        self.pq = utils.placeMeteor(self.ym, self.bm, tmpBoard)
+        if self.tileCheckBox.isChecked() :
+            self.pq = utils.placeMeteor(self.ym, self.bm, tmpBoard, "Safe")
+        else :
+            self.pq = utils.placeMeteor(self.ym, self.bm, tmpBoard, self.mode)
         self.bmLineEdit.setText(str(self.pq))
         self.bm = 3 + self.bm % 2 # 3 -> 4 -> 3 -> 4 -> ...
         self.update()
-
-    def toggle_stay_on_top(self):
-        if self.mi_stay_on_top.isChecked():
-            # enabled
-            self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
-        else:
-            # disable
-            self.setWindowFlags(self.windowFlags() & ~Qt.WindowStaysOnTopHint)
-        # re-show the window after changing flags
-        self.show()
 
     def paintEvent(self, event):
         self.drawTiles(self.myBoard)
@@ -174,9 +209,8 @@ class Window(QMainWindow):
             color = Qt.darkGray
         else:
             color = Qt.black
-        painter.setPen(QPen(Qt.black, 2.5, Qt.SolidLine))
+        painter.setPen(QPen(Qt.white, 2.5, Qt.SolidLine))
         painter.setBrush(QBrush(color, Qt.SolidPattern))
-
         points = [
             QPoint(x, y - radius + self.offset),
             QPoint(x + radius, y + self.offset),
@@ -206,5 +240,5 @@ class Window(QMainWindow):
 if __name__ == "__main__":
     App = QApplication(sys.argv)
     window = Window()
-    # window.setWindowOpacity(0.8)
+    window.setWindowOpacity(0.8)
     sys.exit(App.exec())
