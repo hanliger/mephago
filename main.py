@@ -105,11 +105,13 @@ class Window(QMainWindow):
         self.diffCB.addItem("Normal")
         self.diffCB.activated[str].connect(self.reset)
 
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.timerTimeout)
+        self.timer.start(1000)
+
         # 3 x 3 timer & labels & tiles
         for loc in self.LocToPos :
             x, y = self.LocToPos[loc]
-            self.timer = QTimer(self)
-            self.timer.setObjectName("timer{}".format(loc))
 
             self.lbl = QLabel(self)
             self.lbl.setObjectName("lbl{}".format(loc))
@@ -133,6 +135,7 @@ class Window(QMainWindow):
         self.nb6.setStyleSheet("color:yellow;font-size:20px")
         self.nb6.setContextMenuPolicy(Qt.CustomContextMenu)
         self.nb6.customContextMenuRequested.connect(self.ymRightClicked)
+        self.nb6.setFlat(True)
 
         self.nb12 = QPushButton("★", self)
         self.nb12.setGeometry(QRect(125, 20, 50, 20))
@@ -140,6 +143,7 @@ class Window(QMainWindow):
         self.nb12.setStyleSheet("color:yellow;font-size:20px")
         self.nb12.setContextMenuPolicy(Qt.CustomContextMenu)
         self.nb12.customContextMenuRequested.connect(self.ymRightClicked)
+        self.nb12.setFlat(True)
         self.show()
 
     #reset
@@ -161,20 +165,26 @@ class Window(QMainWindow):
         self.ymLineEdit.setText(str(self.ym))
         self.bm = 3 + self.bm % 2
         self.update()
-
-    def timerCBChecked(self):
-        # checked
-        if self.timerCheckBox.isChecked() :
-            # start timers on 0-val tiles
-            # call showTimers? maybe
-            for loc, val in self.myBoard.chessBoard :
-                if val == 0 :
-                    self.startTimer(loc)
-        # unchecked
-        else :
-            for loc, _ in self.myBoard.chessBoard :
-                pass
+    def timerTimeout(self):
+        for loc, val in self.myBoard.chessBoard:
+            time = self.LocToTime[loc]
+            lbl = self.findChild(QLabel, "lbl{}".format(loc))
+            if self.timerCheckBox.isChecked() and val == 0:
+                self.LocToTime[loc] -= 1 # countdown 1 sec
+                lbl.setText(secs_to_minsec(time))
+                lbl.show()
+                if self.LocToTime[loc] == 0:
+                    self.myBoard.update(loc, 3)
+                    self.LocToTime[loc] = 100
+            else :
+                lbl.hide()
         self.update()
+
+    # def timerCBChecked(self):
+    #     for loc, _ in self.myBoard.chessBoard :
+    #         _, time = self.LocToTime[loc]
+    #         self.LocToTime[loc] = (self.timerCheckBox.isChecked, time)
+    #     self.update()
 
     def tileButtonClicked(self, id):
         loc, val = self.myBoard.get(id)
@@ -226,11 +236,10 @@ class Window(QMainWindow):
         self.update()
 
     def paintEvent(self, event):
-        self.drawTiles(self.myBoard)
-        self.showTimers(self.myBoard)
+        self.drawTiles()
 
-    def drawTiles(self, myBoard):
-        for x, y in myBoard.chessBoard :
+    def drawTiles(self):
+        for x, y in self.myBoard.chessBoard :
             self.drawTile(x, y)
 
     def drawTile(self, loc, val, size=100):
@@ -255,35 +264,6 @@ class Window(QMainWindow):
         ]
         poly = QPolygon(points)
         painter.drawPolygon(poly)
-
-    def startTimer(self, loc:int):
-        timer = self.findChild(QTimer,"timer{}".format(loc))
-        timer.timeout.connect(lambda loc = loc : self.timerTimeout(loc))
-        timer.start(1000)
-
-    def timerTimeout(self, loc:int):
-        self.LocToTime[loc] -= 1
-        if self.LocToTime[loc] == 0 :
-            timer = self.findChild(QTimer,"timer{}".format(loc))
-            timer.stop()
-            self.myBoard.update(loc, 3)
-            self.LocToTime[loc] = 100
-        self.update()
-
-    def showTimers(self, myBoard):
-        for loc, val in myBoard.chessBoard :
-            self.showTime(loc, val)
-
-    def showTime(self, loc, val):
-        timer = self.findChild(QTimer,"timer{}".format(loc))
-        lbl = self.findChild(QLabel, "lbl{}".format(loc))
-        if val == 0 and self.timerCheckBox.isChecked() :
-            self.startTimer(loc)
-            lbl.setText(str(secs_to_minsec(self.LocToTime[loc])))
-            lbl.show()
-        else :
-            lbl.hide()
-        pass
 
     def mousePressEvent(self, event):
         if not self.lockCheckBox.isChecked() :
