@@ -180,12 +180,6 @@ class Window(QMainWindow):
                 lbl.hide()
         self.update()
 
-    # def timerCBChecked(self):
-    #     for loc, _ in self.myBoard.chessBoard :
-    #         _, time = self.LocToTime[loc]
-    #         self.LocToTime[loc] = (self.timerCheckBox.isChecked, time)
-    #     self.update()
-
     def tileButtonClicked(self, id):
         loc, val = self.myBoard.get(id)
         if val > 1 :
@@ -198,6 +192,7 @@ class Window(QMainWindow):
         loc, val = self.myBoard.get(id)
         if val == 0 :
             self.myBoard.update(loc, 3)
+            self.LocToTime[loc] = 100
         else :
             self.myBoard.update(loc, min(3, val + 1))
         self.refresh()
@@ -222,6 +217,7 @@ class Window(QMainWindow):
         if self.ymBroken :
             for loc in self.ymBroken :
                 self.myBoard.update(loc, 3)
+                self.LocToTime[loc] = 100
             self.ymBroken = []
             self.refresh()
 
