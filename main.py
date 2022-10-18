@@ -3,22 +3,31 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 import ChessBoard, utils
 import copy
+from dataclasses import dataclass
+from functools import cached_property
 #from BlurWindow.blurWindow import blur
 
 import sys
 
-class tileButton(QPushButton):
-    def __init__(self):
-        super().__init__()
-        timer = QTimer(self, interval=1000)
+def secs_to_minsec(secs: int):
+    mins = secs // 60
+    secs = secs % 60
+    minsec = f'{mins:02}:{secs:02}'
+    return minsec
 
 class Window(QMainWindow):
     LocToPos = {12:(150,50), 11:(100, 100), 1:(200, 100),
             9:(50, 150), 0:(150, 150), 3:(250, 150),
             7:(100, 200), 5:(200, 200), 6:(150, 250)}
+
+    LocToTime = {12:100, 11:100, 1:100,
+               9:100, 0:100, 3:100,
+               7:100, 5:100, 6:100}
+
     size = 100
     offset = 40
     tileClicked = 0
+    locked = False
 
     def __init__(self):
         super().__init__()
@@ -53,6 +62,9 @@ class Window(QMainWindow):
         self.refreshButton = QPushButton('R', self)
         self.refreshButton.setGeometry(QRect(260, 0, 20, 20))
         self.refreshButton.clicked.connect(self.refresh)
+
+        self.lockCheckBox = QCheckBox(self)
+        self.lockCheckBox.setGeometry(QRect(245, 0, 20, 20))
 
         self.timerCheckBox = QCheckBox('타이머 ON', self)
         self.timerCheckBox.setGeometry(QRect(220, 30, 80, 20))
@@ -93,34 +105,41 @@ class Window(QMainWindow):
         self.diffCB.addItem("Normal")
         self.diffCB.activated[str].connect(self.reset)
 
-        # self.lbl = QLabel('1:40', self)
-        # self.lbl.setGeometry((QRect(125,25+self.offset, 50, 50)))
-        # self.lbl.setAlignment(Qt.AlignCenter)
-        # self.lbl.setStyleSheet("background-color:rgba(0,0,0,0)")
-
-        # 3 x 3 tiles
+        # 3 x 3 timer & labels & tiles
         for loc in self.LocToPos :
             x, y = self.LocToPos[loc]
+            self.timer = QTimer(self)
+            self.timer.setObjectName("timer{}".format(loc))
+
+            self.lbl = QLabel(self)
+            self.lbl.setObjectName("lbl{}".format(loc))
+            self.lbl.setGeometry((QRect(x-25,y-25+self.offset, 50, 50)))
+            self.lbl.setAlignment(Qt.AlignCenter)
+            self.lbl.setStyleSheet("background-color:rgba(0,0,0,0)")
+            self.lbl.setText(str(secs_to_minsec(self.LocToTime[loc])))
+            self.lbl.hide()
+
             self.button = QPushButton(self)
+            self.button.setObjectName("btn{}".format(loc))
             self.button.setGeometry(QRect(x-25, y-25+self.offset, 50, 50))
             self.button.clicked.connect(lambda ch, loc = loc: self.tileButtonClicked(loc))
             self.button.setContextMenuPolicy(Qt.CustomContextMenu)
             self.button.customContextMenuRequested.connect(lambda ch, loc = loc: self.tileButtonRightClicked(loc))
             self.button.setFlat(True)
 
-
-
         self.nb6 = QPushButton("★",self)
         self.nb6.setGeometry(QRect(125, 340, 50, 20))
         self.nb6.clicked.connect(lambda : self.ymClicked(6))
+        self.nb6.setStyleSheet("color:yellow;font-size:20px")
         self.nb6.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.nb6.customContextMenuRequested.connect(lambda : self.ymRightClicked())
+        self.nb6.customContextMenuRequested.connect(self.ymRightClicked)
 
         self.nb12 = QPushButton("★", self)
         self.nb12.setGeometry(QRect(125, 20, 50, 20))
         self.nb12.clicked.connect(lambda : self.ymClicked(12))
+        self.nb12.setStyleSheet("color:yellow;font-size:20px")
         self.nb12.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.nb12.customContextMenuRequested.connect(lambda : self.ymRightClicked())
+        self.nb12.customContextMenuRequested.connect(self.ymRightClicked)
         self.show()
 
     #reset
@@ -143,10 +162,26 @@ class Window(QMainWindow):
         self.bm = 3 + self.bm % 2
         self.update()
 
+    def timerCBChecked(self):
+        # checked
+        if self.timerCheckBox.isChecked() :
+            # start timers on 0-val tiles
+            # call showTimers? maybe
+            for loc, val in self.myBoard.chessBoard :
+                if val == 0 :
+                    self.startTimer(loc)
+        # unchecked
+        else :
+            for loc, _ in self.myBoard.chessBoard :
+                pass
+        self.update()
+
     def tileButtonClicked(self, id):
-        # id = int(btn.objectName())
         loc, val = self.myBoard.get(id)
-        self.myBoard.update(loc, max(0, val - 1))
+        if val > 1 :
+            self.myBoard.update(loc, val - 1)
+        elif val == 1:
+            self.myBoard.update(loc, 0)
         self.update()
 
     def tileButtonRightClicked(self, id):
@@ -192,6 +227,7 @@ class Window(QMainWindow):
 
     def paintEvent(self, event):
         self.drawTiles(self.myBoard)
+        self.showTimers(self.myBoard)
 
     def drawTiles(self, myBoard):
         for x, y in myBoard.chessBoard :
@@ -220,22 +256,44 @@ class Window(QMainWindow):
         poly = QPolygon(points)
         painter.drawPolygon(poly)
 
+    def startTimer(self, loc:int):
+        timer = self.findChild(QTimer,"timer{}".format(loc))
+        timer.timeout.connect(lambda loc = loc : self.timerTimeout(loc))
+        timer.start(1000)
+
+    def timerTimeout(self, loc:int):
+        self.LocToTime[loc] -= 1
+        if self.LocToTime[loc] == 0 :
+            timer = self.findChild(QTimer,"timer{}".format(loc))
+            timer.stop()
+            self.myBoard.update(loc, 3)
+            self.LocToTime[loc] = 100
+        self.update()
+
+    def showTimers(self, myBoard):
+        for loc, val in myBoard.chessBoard :
+            self.showTime(loc, val)
+
+    def showTime(self, loc, val):
+        timer = self.findChild(QTimer,"timer{}".format(loc))
+        lbl = self.findChild(QLabel, "lbl{}".format(loc))
+        if val == 0 and self.timerCheckBox.isChecked() :
+            self.startTimer(loc)
+            lbl.setText(str(secs_to_minsec(self.LocToTime[loc])))
+            lbl.show()
+        else :
+            lbl.hide()
+        pass
+
     def mousePressEvent(self, event):
-        self.oldPosition = event.globalPos()
+        if not self.lockCheckBox.isChecked() :
+            self.oldPosition = event.globalPos()
 
     def mouseMoveEvent(self, event):
-        delta = QPoint(event.globalPos() - self.oldPosition)
-        self.move(self.x() + delta.x(), self.y() + delta.y())
-        self.oldPosition = event.globalPos()
-
-# ym = 12
-# bm = 3
-# myBoard = ChessBoard.ChessBoard("Hard")
-# # myBoard = ChessBoard.ChessBoard([(11, 0), (1, 1), (12, 1), (3, 2), (9, 2), (0, 2), (5, 3), (7, 1), (6, 3)])
-# newBoard, pq = utils.placeMeteor(ym, bm, myBoard)
-# myBoard = newBoard
-# print(myBoard.chessBoard)
-# print(pq)
+        if not self.lockCheckBox.isChecked() :
+            delta = QPoint(event.globalPos() - self.oldPosition)
+            self.move(self.x() + delta.x(), self.y() + delta.y())
+            self.oldPosition = event.globalPos()
 
 if __name__ == "__main__":
     App = QApplication(sys.argv)
