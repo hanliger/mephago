@@ -150,6 +150,9 @@ class Window(QMainWindow):
     def reset(self, cb):
         self.mode = cb
         self.initMode(cb)
+        self.LocToTime = {12:100, 11:100, 1:100,
+               9:100, 0:100, 3:100,
+               7:100, 5:100, 6:100}
         self.bmLineEdit.setText(str(self.pq))
         self.ymLineEdit.setText(str(self.ym))
         self.update()
@@ -165,6 +168,7 @@ class Window(QMainWindow):
         self.ymLineEdit.setText(str(self.ym))
         self.bm = 3 + self.bm % 2
         self.update()
+
     def timerTimeout(self):
         for loc, val in self.myBoard.chessBoard:
             time = self.LocToTime[loc]
@@ -176,6 +180,7 @@ class Window(QMainWindow):
                 if self.LocToTime[loc] == 0:
                     self.myBoard.update(loc, 3)
                     self.LocToTime[loc] = 100
+                    self.refresh()
             else :
                 lbl.hide()
         self.update()
@@ -196,7 +201,6 @@ class Window(QMainWindow):
         else :
             self.myBoard.update(loc, min(3, val + 1))
         self.refresh()
-        # self.update()
 
     def ymClicked(self, loc):
         if loc == 12 :
@@ -222,6 +226,7 @@ class Window(QMainWindow):
             self.refresh()
 
     def nextButtonClicked(self):
+        # utils.updateBoard(self.pq, self.myBoard)
         tmpBoard = copy.deepcopy(self.myBoard)
         if self.tileCheckBox.isChecked() :
             self.pq = utils.placeMeteor(self.ym, self.bm, tmpBoard, "Safe")

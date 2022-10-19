@@ -55,11 +55,13 @@ def placeMeteor (ym, bm, myBoard, difficulty) :
 def placeMeteorSafe (ym, bm, myBoard) :
     # check availability a priori
     if myBoard.zeros() > 3 :
-        print("failed")
-        return 0
-    if bm > myBoard.sum():
-        print("dps gogo")
-        return 0
+        return "실패"
+
+    if bm > myBoard.sum() :
+        if myBoard.zeros() == 3 :
+            return "타일복구까지 딜컷"
+        else :
+            return "노메봐야함 빡딜ㄱㄱ"
     else :
         # uniform distribute on top side
         myBoard.split(ym)
@@ -89,11 +91,12 @@ def placeMeteorNormal(ym, bm, myBoard) :
     # check availability a priori
     myBoard.split(ym)
     if myBoard.zeros() > 3 :
-        print("failed")
-        return 0
-    if myBoard.zeros() == 3 and bm > myBoard.sum():
-        print("dpscut")
-        return 0
+        return "실패"
+    if bm > myBoard.sum() :
+        if myBoard.zeros() == 3 :
+            return "타일복구까지 딜컷"
+        else :
+            return "노메봐야함 빡딜ㄱㄱ"
     pq = []
     # best case scenario : 가능하다면 top에 균등배치
     if myBoard.sum("top") >= bm :
@@ -141,8 +144,7 @@ def placeMeteorNormal(ym, bm, myBoard) :
 def placeMeteorHard(ym, bm, myBoard):
     # check availability a priori
     if myBoard.zeros() > 3 :
-        print("failed")
-        return 0
+        return "실패"
 
     myBoard.split(ym)
     pq = distribute(bm, myBoard.top)
@@ -152,8 +154,7 @@ def placeMeteorHard(ym, bm, myBoard):
     myBoard.split(ym)
     if myBoard.zeros() == 3:
         if bm > myBoard.sum():
-            print("dpscut")
-            return 0
+            return "타일복구까지 딜컷"
     else:
         if bm > 0 and myBoard.zeros() < 3:
             if ym == 12:
@@ -194,8 +195,7 @@ def placeMeteorHard(ym, bm, myBoard):
     myBoard.split(ym)
 
     if bm > 0 and bm > myBoard.sum("bot") + myBoard.sum("spr"):
-        print("dpscut")
-        return 0
+        return "노메봐야함 빡딜ㄱㄱ"
 
     pq_tmp = distribute(bm, myBoard.bot)
     bm -= len(pq_tmp)
