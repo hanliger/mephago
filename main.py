@@ -59,22 +59,22 @@ class Window(QMainWindow):
         self.quitButton.setGeometry(QRect(280,0,20,20))
         self.quitButton.clicked.connect(QCoreApplication.instance().quit)
 
-        self.refreshButton = QPushButton('R', self)
-        self.refreshButton.setGeometry(QRect(260, 0, 20, 20))
-        self.refreshButton.clicked.connect(self.refresh)
+        # self.refreshButton = QPushButton('R', self)
+        # self.refreshButton.setGeometry(QRect(260, 0, 20, 20))
+        # self.refreshButton.clicked.connect(self.refresh)
 
         self.lockCheckBox = QCheckBox(self)
-        self.lockCheckBox.setGeometry(QRect(245, 0, 20, 20))
+        self.lockCheckBox.setGeometry(QRect(265, 0, 20, 20))
 
         self.timerCheckBox = QCheckBox('타이머 ON', self)
         self.timerCheckBox.setGeometry(QRect(220, 30, 80, 20))
         self.timerCheckBox.setLayoutDirection(Qt.RightToLeft)
         self.timerCheckBox.setObjectName("timerCheckBox")
 
-        self.tileCheckBox = QCheckBox('타일파괴방지', self)
+        self.tileCheckBox = QCheckBox('찬미하라', self)
         self.tileCheckBox.setGeometry(QRect(0, 30, 100, 20))
         # self.tileCheckBox.setLayoutDirection(Qt.RightToLeft)
-        #self.tileCheckBox.toggle()
+        # self.tileCheckBox.toggle()
         self.tileCheckBox.stateChanged.connect(self.refresh)
 
         self.lbl1 = QLabel("파메", self)
@@ -85,6 +85,11 @@ class Window(QMainWindow):
         self.bmLineEdit.setAlignment(Qt.AlignCenter)
         self.bmLineEdit.setText(str(self.pq))
         self.bmLineEdit.setReadOnly(True)
+
+        self.applyButton = QPushButton(self)
+        self.applyButton.setGeometry(QRect(75, 375, 150, 20))
+        self.applyButton.clicked.connect(self.applyButtonClicked)
+        self.applyButton.setFlat(True)
 
         self.nextButton = QPushButton("Next", self)
         self.nextButton.setGeometry(QRect(235, 375, 50, 20))
@@ -191,7 +196,7 @@ class Window(QMainWindow):
             self.myBoard.update(loc, val - 1)
         elif val == 1:
             self.myBoard.update(loc, 0)
-        self.update()
+        self.refresh()
 
     def tileButtonRightClicked(self, id):
         loc, val = self.myBoard.get(id)
@@ -227,6 +232,16 @@ class Window(QMainWindow):
 
     def nextButtonClicked(self):
         # utils.updateBoard(self.pq, self.myBoard)
+        tmpBoard = copy.deepcopy(self.myBoard)
+        if self.tileCheckBox.isChecked() :
+            self.pq = utils.placeMeteor(self.ym, self.bm, tmpBoard, "Safe")
+        else :
+            self.pq = utils.placeMeteor(self.ym, self.bm, tmpBoard, self.mode)
+        self.bmLineEdit.setText(str(self.pq))
+        self.bm = 3 + self.bm % 2 # 3 -> 4 -> 3 -> 4 -> ...
+        self.update()
+    def applyButtonClicked(self):
+        utils.updateBoard(self.pq, self.myBoard)
         tmpBoard = copy.deepcopy(self.myBoard)
         if self.tileCheckBox.isChecked() :
             self.pq = utils.placeMeteor(self.ym, self.bm, tmpBoard, "Safe")
