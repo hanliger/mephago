@@ -175,10 +175,10 @@ def placeMeteorHard(ym, bm, myBoard):
         return "실패"
 
     myBoard.split(ym)
-    if myBoard.sum("top") >= 4:
-        pq = distributeNormal(bm, myBoard.top)
-    else :
+    if bm == 4:
         pq = distribute(bm, myBoard.top)
+    else :
+        pq = distributeNormal(bm, myBoard.top)
 
     bm -= len(pq)
     updateBoard(pq, myBoard)
