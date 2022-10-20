@@ -97,7 +97,7 @@ class Window(QMainWindow):
 
         self.nextButton = QPushButton("다음", self)
         self.nextButton.setStyleSheet("font-size:20px; font-weight:bold")
-        self.nextButton.setGeometry(QRect(238, 387, 55, 35))
+        self.nextButton.setGeometry(QRect(240, 390, 50, 30))
         self.nextButton.clicked.connect(self.nextButtonClicked)
         self.nextButton.setFlat(True)
 
