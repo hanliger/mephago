@@ -1,7 +1,33 @@
 import ChessBoard
+from collections import Counter
+from itertools import repeat, chain
 
-def sort(ls:list):
-    return sorted(ls, key = lambda x : (x[1]), reverse=True)
+
+def sort(ls: list):
+    return sorted(ls, key=lambda x: (x[1]), reverse=True)
+
+
+def cycleSort(ls: list):
+    order = [11, 12, 1, 3, 5, 6, 7, 9, 0]
+    tmp = sorted(ls, key=order.index)
+    return list(chain.from_iterable(repeat(i, c) for i, c in Counter(tmp).most_common()))
+
+
+def pqToString(pq):
+    if type(pq) is str:
+        return pq
+    output = ""
+    for item in pq:
+        output = output + str(item) + ", "
+    return output[:-2]
+
+
+def dispenseBM(i):
+    if i == 0:
+        return 2
+    else:
+        return 3 + (i + 1) % 2
+
 
 def distribute(bm, ls):
     pq = list()
@@ -18,51 +44,51 @@ def distribute(bm, ls):
             pq.append(loc)
     return pq
 
-def distributeNormal(bm, ls) :
+
+def distributeNormal(bm, ls):
     pq = list()
-    for loc, val in ls :
+    for loc, val in ls:
         if val > 1 and bm > 0:
             bm -= 1
             pq += [loc]
-            i = ls.index((loc,val))
+            i = ls.index((loc, val))
             ls[i] = (loc, val - 1)
-    if bm > 0 :
-        for loc, val in ls :
-            if bm == 0 :
+    if bm > 0:
+        for loc, val in ls:
+            if bm == 0:
                 break
-            elif val > 1 :
+            elif val > 1:
                 bm -= 1
-                if loc in pq :
-                    i = pq.index(loc)
-                    pq = pq[0:i] + [loc] + pq[i:len(pq)]
-                else :
-                    pq += [loc]
+                pq += [loc]
     return pq
+
 
 def updateBoard(pq, chessBoard: ChessBoard):
     for loc in pq:
         x, y = chessBoard.get(loc)
         chessBoard.update(x, max(0, y - 1))
 
-def placeMeteor (ym, bm, myBoard, difficulty) :
-    if difficulty == "Hard" :
-        return placeMeteorHard(ym, bm, myBoard)
-    elif difficulty == "Normal" :
-        return placeMeteorNormal(ym, bm, myBoard)
-    elif difficulty == "Safe" :
-        return placeMeteorSafe (ym, bm, myBoard)
 
-def placeMeteorSafe (ym, bm, myBoard) :
+def placeMeteor(ym, bm, myBoard, difficulty):
+    if difficulty == "Hard":
+        return placeMeteorHard(ym, bm, myBoard)
+    elif difficulty == "Normal":
+        return placeMeteorNormal(ym, bm, myBoard)
+    elif difficulty == "Safe":
+        return placeMeteorSafe(ym, bm, myBoard)
+
+
+def placeMeteorSafe(ym, bm, myBoard):
     # check availability a priori
-    if myBoard.zeros() > 3 :
+    if myBoard.zeros() > 3:
         return "실패"
 
-    if bm > myBoard.sum() :
-        if myBoard.zeros() == 3 :
+    if bm > myBoard.sum():
+        if myBoard.zeros() == 3:
             return "타일복구까지 딜컷"
-        else :
-            return "노메봐야함 빡딜ㄱㄱ"
-    else :
+        else:
+            return "노메까지 빡딜"
+    else:
         # uniform distribute on top side
         myBoard.split(ym)
         pq = distributeNormal(bm, myBoard.top)
@@ -87,52 +113,53 @@ def placeMeteorSafe (ym, bm, myBoard) :
 
         return pq
 
-def placeMeteorNormal(ym, bm, myBoard) :
+
+def placeMeteorNormal(ym, bm, myBoard):
     # check availability a priori
     myBoard.split(ym)
-    if myBoard.zeros() > 3 :
+    if myBoard.zeros() > 3:
         return "실패"
-    if bm > myBoard.sum() :
-        if myBoard.zeros() == 3 :
+    if bm > myBoard.sum():
+        if myBoard.zeros() == 3:
             return "타일복구까지 딜컷"
-        else :
-            return "노메봐야함 빡딜ㄱㄱ"
+        else:
+            return "노메까지 빡딜"
     pq = []
     # best case scenario : 가능하다면 top에 균등배치
-    if myBoard.sum("top") >= bm :
+    if myBoard.sum("top") >= bm:
         pq = distributeNormal(bm, myBoard.top)
     # top에 배치 후 잉여 1개일 시
     # top에 1개씩 배치 후 + 1개 spr > bot 배치
-    elif bm - myBoard.sum("top") == 1 :
-        if myBoard.sum("spr") >= 1 :
+    elif bm - myBoard.sum("top") == 1:
+        if myBoard.sum("spr") >= 1:
             pq = distributeNormal(bm - 1, myBoard.top)
             # preferably 가까운 spare로...
             myBoard.adjustSpr(pq)
             pq += distribute(1, myBoard.spr)
-        elif myBoard.sum("bot") >= 1 :
+        elif myBoard.sum("bot") >= 1:
             pq = distributeNormal(bm - 1, myBoard.top) + distributeNormal(1, myBoard.bot)
     # top에 배치 후 2개 이상 잉여분이 생기는 경우
-    else :
-        #top에 깨진 타일이 없으면 몰아서 깬다
-        if myBoard.zeros() < 3 and myBoard.zeros(myBoard.top) == 0 :
-            if ym == 12 :
-                if myBoard.get(11)[1] == 1 :
-                    pq = bm*[11]
-                elif myBoard.get(1)[1] == 1 :
-                    pq = bm*[1]
-            elif ym == 6 :
-                if myBoard.get(7)[1] == 1 :
-                    pq = bm*[7]
-                elif myBoard.get(5)[1] == 1 :
-                    pq = bm*[5]
-        #top에 깨진 타일이 있으면 top -> bot -> spr 나눠서 배치
-        else :
+    else:
+        # top에 깨진 타일이 없으면 몰아서 깬다
+        if myBoard.zeros() < 3 and myBoard.zeros(myBoard.top) == 0:
+            if ym == 12:
+                if myBoard.get(11)[1] == 1:
+                    pq = bm * [11]
+                elif myBoard.get(1)[1] == 1:
+                    pq = bm * [1]
+            elif ym == 6:
+                if myBoard.get(7)[1] == 1:
+                    pq = bm * [7]
+                elif myBoard.get(5)[1] == 1:
+                    pq = bm * [5]
+        # top에 깨진 타일이 있으면 top -> bot -> spr 나눠서 배치
+        else:
             pq = distributeNormal(bm, myBoard.top)
             bm -= len(pq)
             pq_tmp = distributeNormal(bm, myBoard.bot)
             bm -= len(pq_tmp)
             pq += pq_tmp
-            if bm > 0 :
+            if bm > 0:
                 myBoard.adjustSpr(pq)
                 pq_tmp += distribute(bm, myBoard.spr)
                 bm -= len(pq_tmp)
@@ -141,9 +168,10 @@ def placeMeteorNormal(ym, bm, myBoard) :
     myBoard.split(ym)
     return pq
 
+
 def placeMeteorHard(ym, bm, myBoard):
     # check availability a priori
-    if myBoard.zeros() > 3 :
+    if myBoard.zeros() > 3:
         return "실패"
 
     myBoard.split(ym)
@@ -195,7 +223,7 @@ def placeMeteorHard(ym, bm, myBoard):
     myBoard.split(ym)
 
     if bm > 0 and bm > myBoard.sum("bot") + myBoard.sum("spr"):
-        return "노메봐야함 빡딜ㄱㄱ"
+        return "노메까지 빡딜"
 
     pq_tmp = distribute(bm, myBoard.bot)
     bm -= len(pq_tmp)
