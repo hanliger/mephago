@@ -1,55 +1,38 @@
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
-import ChessBoard, utils
-import copy
+import ChessBoard as cb
+import utils
 # from BlurWindow.blurWindow import blur
 
 import sys
-
-
-def secs_to_minsec(secs: int):
-    mins = secs // 60
-    secs = secs % 60
-    minsec = f'{mins:02}:{secs:02}'
-    return minsec
-
 
 class Window(QMainWindow):
     LocToPos = {12: (150, 50), 11: (100, 100), 1: (200, 100),
                 9: (50, 150), 0: (150, 150), 3: (250, 150),
                 7: (100, 200), 5: (200, 200), 6: (150, 250)}
-
     DURATION = 100
-    order = [11, 12, 1, 3, 5, 6, 7, 9, 0]
     LocToTime = dict()
     turn = 0
     size = 100
     offset = 40
-    locked = False
+    states = list()
 
     def __init__(self):
         super().__init__()
         self.initMode("Hard")
         self.initUI()
         self.showBM()
+        self.states.append(self.saveState())
 
     def initMode(self, mode):
-        for item in self.order:
+        for item in [11, 12, 1, 3, 5, 6, 7, 9, 0] :
             self.LocToTime[item] = self.DURATION
         self.mode = mode
-        self.myBoard = ChessBoard.ChessBoard(mode)
+        self.myBoard = cb.ChessBoard(mode)
         self.turn = 0
-        self.bm = utils.dispenseBM(self.turn)
-        if mode == "Hard":
-            self.ym = 12
-            self.ymBroken = [5, 6, 7]
-        elif mode == "Normal":
-            self.ym = 6
-            self.bm = utils.dispenseBM(self.turn)
-            self.ymBroken = [11, 12, 1]
-        tmpBoard = copy.deepcopy(self.myBoard)
-        self.pq = utils.placeMeteor(self.ym, self.bm, tmpBoard, mode)
+        self.ymBroken = [5, 6, 7] if mode == "Hard" else [11, 12, 1]
+        self.pq = utils.placeMeteor(self.myBoard, mode)
 
     def initUI(self):
         self.setFixedSize(300, 430)
@@ -80,8 +63,6 @@ class Window(QMainWindow):
 
         self.tileCheckBox = QCheckBox('찬미하라', self)
         self.tileCheckBox.setGeometry(QRect(0, 30, 100, 20))
-        # self.tileCheckBox.setLayoutDirection(Qt.RightToLeft)
-        # self.tileCheckBox.toggle()
         self.tileCheckBox.stateChanged.connect(self.refresh)
 
         self.bmLabel = QLabel(self)
@@ -105,11 +86,11 @@ class Window(QMainWindow):
         self.ymLabel.setGeometry(QRect(8, 387, 55, 35))
         self.ymLabel.setAlignment(Qt.AlignCenter)
         self.ymLabel.setStyleSheet("font-size:20px; font-weight:bold; color:yellow")
-        self.ymLabel.setText(str(self.ym))
+        self.ymLabel.setText(str(self.myBoard.ym))
 
         self.applyYMButton = QPushButton(self)
         self.applyYMButton.setGeometry(QRect(8, 387, 55, 35))
-        self.applyYMButton.clicked.connect(lambda: self.ymClicked(self.ym))
+        self.applyYMButton.clicked.connect(lambda: self.ymClicked(self.myBoard.ym))
         self.applyYMButton.setFlat(True)
 
         self.diffCB = QComboBox(self)
@@ -131,7 +112,7 @@ class Window(QMainWindow):
             self.lbl.setGeometry((QRect(x - 25, y - 25 + self.offset, 50, 50)))
             self.lbl.setAlignment(Qt.AlignCenter)
             self.lbl.setStyleSheet("background-color:rgba(0,0,0,0)")
-            self.lbl.setText(str(secs_to_minsec(self.LocToTime[loc])))
+            self.lbl.setText(str(utils.secs_to_minsec(self.LocToTime[loc])))
             self.lbl.hide()
 
             self.bmlbl = QLabel(self)
@@ -164,11 +145,7 @@ class Window(QMainWindow):
         self.nb6.setFlat(True)
 
         self.switchYM()
-
         self.show()
-
-    def printhi(self):
-        print("clicked")
 
     # reset
     def reset(self, cb):
@@ -176,18 +153,18 @@ class Window(QMainWindow):
         self.mode = cb
         self.initMode(cb)
         self.bmLabel.setText(utils.pqToString(self.pq))
-        self.ymLabel.setText(str(self.ym))
+        self.ymLabel.setText(str(self.myBoard.ym))
         self.switchYM()
         self.showBM()
         self.update()
 
     def switchYM(self):
-        if self.ym == 12:
+        if self.myBoard.ym == 12:
             self.nb12.setText("★")
             self.nb12.setStyleSheet("color:yellow;font-size:33px")
             self.nb6.setText("☆")
             self.nb6.setStyleSheet("color:Gray;font-size:33px")
-        elif self.ym == 6:
+        elif self.myBoard.ym == 6:
             self.nb6.setText("★")
             self.nb6.setStyleSheet("color:yellow;font-size:33px")
             self.nb12.setText("☆")
@@ -195,7 +172,7 @@ class Window(QMainWindow):
 
     def showBM(self):
         if type(self.pq) is list:
-            self.pq = utils.cycleSort(self.pq)
+            self.pq = utils.sortpq(self.pq)
             for loc in self.pq:
                 bmlbl = self.findChild(QLabel, "bmlbl{}".format(loc))
                 if self.pq.count(loc) == 4:
@@ -210,33 +187,32 @@ class Window(QMainWindow):
 
     def hideBM(self):
         if type(self.pq) is list:
-            self.pq = utils.cycleSort(self.pq)
+            self.pq = utils.sortpq(self.pq)
             for loc in self.pq:
                 bmlbl = self.findChild(QLabel, "bmlbl{}".format(loc))
                 bmlbl.hide()
 
     def refresh(self):
         self.hideBM()
-        tmpBoard = copy.deepcopy(self.myBoard)
-        if self.tileCheckBox.isChecked():
-            self.pq = utils.placeMeteor(self.ym, self.bm, tmpBoard, "Safe")
-        else:
-            self.pq = utils.placeMeteor(self.ym, self.bm, tmpBoard, self.mode)
+        if self.tileCheckBox.isChecked() :
+            self.pq = utils.placeMeteor(self.myBoard, "Safe")
+        else :
+            self.pq = utils.placeMeteor(self.myBoard, self.mode)
         if type(self.pq) is list:
-            self.pq = utils.cycleSort(self.pq)
+            self.pq = utils.sortpq(self.pq)
             self.showBM()
         self.switchYM()
         self.bmLabel.setText(utils.pqToString(self.pq))
-        self.ymLabel.setText(str(self.ym))
+        self.ymLabel.setText(str(self.myBoard.ym))
         self.update()
 
     def timerTimeout(self):
-        for loc, val in self.myBoard.chessBoard:
+        for loc, val in self.myBoard.chessBoard.items():
             time = self.LocToTime[loc]
             lbl = self.findChild(QLabel, "lbl{}".format(loc))
             if self.timerCheckBox.isChecked() and val == 0:
                 self.LocToTime[loc] -= 1  # countdown 1 sec
-                lbl.setText(secs_to_minsec(time))
+                lbl.setText(utils.secs_to_minsec(time))
                 lbl.show()
                 if self.LocToTime[loc] == 0:
                     self.myBoard.update(loc, 3)
@@ -251,32 +227,32 @@ class Window(QMainWindow):
         super().setWindowOpacity(opacity)
 
     def tileButtonClicked(self, id):
-        loc, val = self.myBoard.get(id)
+        val = self.myBoard.get(id)
         if val > 1:
-            self.myBoard.update(loc, val - 1)
+            self.myBoard.update(id, val - 1)
         elif val == 1:
-            self.myBoard.update(loc, 0)
+            self.myBoard.update(id, 0)
         self.refresh()
 
     def tileButtonRightClicked(self, id):
-        loc, val = self.myBoard.get(id)
+        val = self.myBoard.get(id)
         if val == 0:
-            self.myBoard.update(loc, 3)
-            self.LocToTime[loc] = self.DURATION
+            self.myBoard.update(id, 3)
+            self.LocToTime[id] = self.DURATION
         else:
-            self.myBoard.update(loc, min(3, val + 1))
+            self.myBoard.update(id, min(3, val + 1))
         self.refresh()
 
     def ymClicked(self, loc):
         if loc == 12:
             index = [12, 11, 1]
-            self.ym = 6
+            self.myBoard.ym = 6
         elif loc == 6:
             index = [6, 7, 5]
-            self.ym = 12
+            self.myBoard.ym = 12
         self.ymBroken = []
         for i in index:
-            _, val = self.myBoard.get(i)
+            val = self.myBoard.get(i)
             if val > 0:
                 self.myBoard.update(i, 0)
                 self.ymBroken += [i]
@@ -293,7 +269,7 @@ class Window(QMainWindow):
     def nextButtonClicked(self):
         # utils.updateBoard(self.pq, self.myBoard)
         self.turn += 1
-        self.bm = utils.dispenseBM(self.turn)
+        self.myBoard.bm = utils.dispenseBM(self.turn)
         self.refresh()
 
     def applyButtonClicked(self):
@@ -315,8 +291,8 @@ class Window(QMainWindow):
         painter.drawRect(235, 385, 60, 40)
 
     def drawTiles(self):
-        for x, y in self.myBoard.chessBoard:
-            self.drawTile(x, y)
+        for loc, val in self.myBoard.chessBoard.items():
+            self.drawTile(loc, val)
 
     def drawTile(self, loc, val, size=100):
         painter = QPainter(self)
